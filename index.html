@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kavishree's Magic Gallery</title>
+    <style>
+        /* ===========================
+           1. Core Setup & Fonts
+        =========================== */
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:ital,wght@0,700;1,600&display=swap');
+
+        :root {
+            --primary: #ff007f;
+            --gold: #ffd700;
+            --dark-bg: #0f0c29;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            background: radial-gradient(circle at center, #24243e, #0f0c29, #000000);
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            overflow-x: hidden;
+            cursor: none; /* Hiding default cursor for the Magic Wand */
+            min-height: 100vh;
+        }
+
+        /* ===========================
+           2. Magic Wand Cursor
+        =========================== */
+        #wand-cursor {
+            position: fixed; z-index: 9999;
+            font-size: 28px; pointer-events: none;
+            transform: rotate(-10deg);
+        }
+        .sparkle-trail {
+            position: fixed; pointer-events: none; z-index: 9998;
+            background: white; width: 6px; height: 6px; border-radius: 50%;
+            animation: fadeDrop 1s forwards;
+        }
+        @keyframes fadeDrop {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+        }
+
+        /* ===========================
+           3. Layout
+        =========================== */
+        .container {
+            max-width: 1100px; margin: 0 auto; padding: 40px 20px;
+            text-align: center; position: relative; z-index: 10;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif; font-size: 3.5rem;
+            background: linear-gradient(to right, #ff9ff3, #feca57);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        /* ===========================
+           4. Rotating Image Cards (Flip Logic)
+        =========================== */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 50px 0;
+        }
+
+        .flip-card {
+            background-color: transparent;
+            width: 100%; height: 400px;
+            perspective: 1000px; /* Essential for 3D effect */
+            cursor: none; /* Keep magic wand */
+        }
+
+        .flip-card-inner {
+            position: relative; width: 100%; height: 100%;
+            text-align: center;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* The Class added by JS to trigger rotation */
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute; width: 100%; height: 100%;
+            -webkit-backface-visibility: hidden; /* Safari */
+            backface-visibility: hidden;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        /* FRONT DESIGN (Gift Box) */
+        .flip-card-front {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(5px);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        .front-icon { font-size: 5rem; animation: float 3s infinite ease-in-out; }
+        .front-text { margin-top: 15px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem; font-weight: bold; }
+
+        /* BACK DESIGN (Image + Note) */
+        .flip-card-back {
+            background-color: white;
+            color: #333;
+            transform: rotateY(180deg);
+            display: flex; flex-direction: column;
+        }
+        .card-img {
+            width: 100%; height: 75%;
+            object-fit: cover;
+            border-bottom: 4px solid var(--gold);
+        }
+        .card-note {
+            height: 25%;
+            display: flex; align-items: center; justify-content: center;
+            padding: 10px 20px;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            font-style: italic;
+            background: #fff5f8;
+            color: #d63031;
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        /* ===========================
+           5. Finale Section
+        =========================== */
+        .finale-section {
+            margin-top: 100px; padding: 40px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        #unlock-btn {
+            padding: 15px 40px; font-size: 1.5rem;
+            background: linear-gradient(45deg, #ff007f, #ffeb3b);
+            border: none; border-radius: 50px; color: white;
+            font-family: 'Playfair Display'; cursor: none;
+            transition: 0.3s;
+        }
+        #unlock-btn:hover { transform: scale(1.1); box-shadow: 0 0 30px #ff007f; }
+
+        #final-message {
+            display: none; animation: popIn 0.8s;
+        }
+        .final-text { font-size: 2rem; color: var(--gold); font-family: 'Playfair Display'; margin-bottom: 10px; }
+        @keyframes popIn { from {opacity: 0; transform: scale(0.8);} to {opacity: 1; transform: scale(1);} }
+
+        canvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 1; }
+
+    </style>
+</head>
+<body>
+
+    <div id="wand-cursor">🪄</div>
+    <canvas id="fireworks-canvas"></canvas>
+
+    <div class="container">
+        <h1>Happy Birthday Kavishree!</h1>
+        <p>Tap a box to reveal the magic inside. (Only one memory stays open at a time!)</p>
+
+        <div class="gallery-grid">
+
+            <div class="flip-card" onclick="flipCard(this)">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <div class="front-icon">🎉</div>
+                        <div class="front-text">The Celebration</div>
+                    </div>
+                    <div class="flip-card-back">
+                        <img src="asset/happy.png" class="card-img" alt="Birthday Party" >
+                        <div class="card-note">"May your life be as bright and colorful as this moment."</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="flipCard(this)">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <div class="front-icon">🌅</div>
+                        <div class="front-text">The Journey</div>
+                    </div>
+                    <div class="flip-card-back">
+                        <img src="asset/joy.png" class="card-img" alt="Sunset Walk" >
+                        <div class="card-note">"Walk confidently into your future. You are ready."</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="flipCard(this)">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <div class="front-icon">🏡</div>
+                        <div class="front-text">Warmth</div>
+                    </div>
+                    <div class="flip-card-back">
+                        <img src="asset/parent.png" class="card-img" alt="Family">
+                        <div class="card-note">"Surrounded by love, always and forever."</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="flipCard(this)">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <div class="front-icon">🏆</div>
+                        <div class="front-text">Success</div>
+                    </div>
+                    <div class="flip-card-back">
+                        <img src="asset/success.png" class="card-img" alt="Success" >
+                        <div class="card-note">"Your achievements make us all so incredibly proud."</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="flipCard(this)">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <div class="front-icon">🍜</div>
+                        <div class="front-text">Joy</div>
+                    </div>
+                    <div class="flip-card-back">
+                        <img src="asset/food.png" class="card-img" alt="Street Food" >
+                        <div class="card-note">"Never forget to enjoy the simple, delicious moments."</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="flipCard(this)">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <div class="front-icon">👑</div>
+                        <div class="front-text">Royalty</div>
+                    </div>
+                    <div class="flip-card-back">
+                        <img src="asset/freedom.png" class="card-img" alt="Royal Dress">
+                        <div class="card-note">"You are the queen of your own story. Shine on!"</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="finale-section">
+            <button id="unlock-btn" onclick="revealFinale()">✨ Click for One Last Surprise ✨</button>
+            <div id="final-message">
+                <h2 class="final-text">Happy Birthday, Kavishree!</h2>
+                <p style="font-size: 1.2rem; line-height: 1.6;">
+                    You bring magic to everyone you meet. <br>
+                    I hope this little digital world made you smile as much as you make me smile.
+                </p>
+                <div style="font-size: 3rem; margin-top: 20px;">🎂🎈❤️</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* ============================
+           1. Flip Card Logic (Reassemble)
+        ============================ */
+        function flipCard(clickedCard) {
+            // Get all cards
+            const allCards = document.querySelectorAll('.flip-card');
+            
+            // Check if the clicked card is already open
+            const isOpen = clickedCard.classList.contains('flipped');
+
+            // Reset ALL cards (Reassemble)
+            allCards.forEach(card => {
+                card.classList.remove('flipped');
+            });
+
+            // If it wasn't already open, open it now
+            // (If it WAS open, we just closed it in the loop above, so we do nothing)
+            if (!isOpen) {
+                clickedCard.classList.add('flipped');
+                
+                // Add sparkle effect at click position
+                const rect = clickedCard.getBoundingClientRect();
+                createSparkleBurst(rect.left + rect.width/2, rect.top + rect.height/2);
+            }
+        }
+
+        /* ============================
+           2. Finale Logic
+        ============================ */
+        function revealFinale() {
+            document.getElementById('unlock-btn').style.display = 'none';
+            document.getElementById('final-message').style.display = 'block';
+            
+            // Launch Fireworks
+            const canvas = document.getElementById('fireworks-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            let count = 0;
+            const interval = setInterval(() => {
+                // Random explosion
+                createExplosion(Math.random()*window.innerWidth, window.innerHeight/3);
+                count++;
+                if(count > 15) clearInterval(interval);
+            }, 500);
+        }
+
+        /* ============================
+           3. Magic Wand & Sparkles
+        ============================ */
+        const cursor = document.getElementById('wand-cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            
+            if(Math.random() < 0.3) {
+                const s = document.createElement('div');
+                s.className = 'sparkle-trail';
+                s.style.left = e.clientX + 'px';
+                s.style.top = e.clientY + 'px';
+                s.style.setProperty('--dx', (Math.random()-0.5)*50 + 'px');
+                s.style.setProperty('--dy', (Math.random()*50) + 'px');
+                document.body.appendChild(s);
+                setTimeout(() => s.remove(), 1000);
+            }
+        });
+
+        function createSparkleBurst(x, y) {
+            for(let i=0; i<10; i++) {
+                const s = document.createElement('div');
+                s.className = 'sparkle-trail';
+                s.style.left = x + 'px';
+                s.style.top = y + 'px';
+                s.style.background = '#ffd700'; // Gold sparkles for burst
+                s.style.setProperty('--dx', (Math.random()-0.5)*100 + 'px');
+                s.style.setProperty('--dy', (Math.random()-0.5)*100 + 'px');
+                document.body.appendChild(s);
+                setTimeout(() => s.remove(), 1000);
+            }
+        }
+
+        /* ============================
+           4. Simple Fireworks Engine
+        ============================ */
+        // (Simplified for file size, runs on the reveal button)
+        function createExplosion(x, y) {
+            const colors = ['#ff007f', '#00d2ff', '#ffd700'];
+            const canvas = document.getElementById('fireworks-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            let particles = [];
+            for(let i=0; i<30; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
+                    life: 100, color: colors[Math.floor(Math.random()*colors.length)]
+                });
+            }
+
+            function animate() {
+                ctx.fillStyle = 'rgba(0,0,0,0.1)'; // Trail effect
+                // ctx.fillRect(0,0,canvas.width,canvas.height); // Clearing handled by background mainly
+                
+                particles.forEach((p, i) => {
+                    p.x += p.vx; p.y += p.vy; p.life--; p.vy += 0.1; // gravity
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, 4, 4);
+                    if(p.life <= 0) particles.splice(i, 1);
+                });
+                
+                if(particles.length > 0) requestAnimationFrame(animate);
+                else ctx.clearRect(0,0,canvas.width,canvas.height);
+            }
+            animate();
+        }
+
+    </script>
+</body>
+</html>
